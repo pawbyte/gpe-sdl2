@@ -3,10 +3,10 @@ gpe_renderer_package_sdl.h
 This file is part of:
 GAME PENCIL ENGINE
 https://www.pawbyte.com/gamepencilengine
-Copyright (c) 2014-2021 Nathan Hurde, Chase Lee.
+Copyright (c) 2014-2023 Nathan Hurde, Chase Lee.
 
-Copyright (c) 2014-2021 PawByte LLC.
-Copyright (c) 2014-2021 Game Pencil Engine contributors ( Contributors Page )
+Copyright (c) 2014-2023 PawByte LLC.
+Copyright (c) 2014-2023 Game Pencil Engine contributors ( Contributors Page )
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the “Software”), to deal
@@ -37,6 +37,7 @@ SOFTWARE.
 #include "../gpe/gpe_render_package.h"
 #include "../gpe/gpe_render_package_handler.h"
 
+#include "gpe_animiation2d_sdl.h"
 #include "gpe_artist_sdl.h"
 #include "gpe_renderer_sdl.h"
 #include "gpe_texture_sdl.h"

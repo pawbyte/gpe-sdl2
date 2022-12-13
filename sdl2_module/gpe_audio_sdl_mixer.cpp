@@ -3,10 +3,10 @@ gpe_audio_sdl_mixer.cpp
 This file is part of:
 GAME PENCIL ENGINE
 https://www.pawbyte.com/gamepencilengine
-Copyright (c) 2014-2021 Nathan Hurde, Chase Lee.
+Copyright (c) 2014-2023 Nathan Hurde, Chase Lee.
 
-Copyright (c) 2014-2021 PawByte LLC.
-Copyright (c) 2014-2021 Game Pencil Engine contributors ( Contributors Page )
+Copyright (c) 2014-2023 PawByte LLC.
+Copyright (c) 2014-2023 Game Pencil Engine contributors ( Contributors Page )
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the “Software”), to deal
@@ -58,6 +58,17 @@ namespace gpe
         int flags[sound_format_max];
         std::string flag_names[sound_format_max];
 
+        //Initialize SDL_mixer
+        if( Mix_OpenAudio( audio_frequency, audio_format, audio_max_channels, audio_chunksize  ) == -1 )
+        {
+            error_log->report("-- Error initializing SDL_Mixer.");
+            sound_is_working = false;
+        }
+        else
+        {
+            sound_is_working = true;
+        }
+
         int i_format = 0;
         for( i_format = 0; i_format < sound_format_max; i_format++ )
         {
@@ -95,13 +106,10 @@ namespace gpe
                 }
             }
         }
+        sound_is_format_supported[sound_format_wav] = true;
+        at_least_one_type_supported = true;
 
-        //Initialize SDL_mixer
-        if( Mix_OpenAudio( audio_frequency, audio_format, audio_max_channels, audio_chunksize  ) == -1 )
-        {
-            error_log->report("-- Error initializing SDL_Mixer.");
-            sound_is_working = false;
-        }
+
 
         if( sound_music_object != NULL )
         {
@@ -118,7 +126,7 @@ namespace gpe
         }
         standard_sound_object = new sound_sdl_mixer("","",-1, -1 );
         sound_system_name = "sdl_mixer";
-        return true;
+        return sound_is_working;
     }
 
     void quit_sdl_mixer_audio_system()
@@ -126,6 +134,11 @@ namespace gpe
         error_log->report("Quitting SDL_Mixer....");
         Mix_Quit();
         sound_system_name = "undefined";
+    }
+
+    Uint16 sdl_mixer_audio_format_sample_size(Uint16 format)
+    {
+        return (format & 0xFF) / 8;
     }
 
     sound_sdl_mixer::sound_sdl_mixer( std::string s_name, std::string s_file , int group_id_number, int s_id )
@@ -141,6 +154,34 @@ namespace gpe
     sound_sdl_mixer::~sound_sdl_mixer()
     {
         unload();
+    }
+
+     // Get chunk time length (in ms) given its size and current audio format
+    int sound_sdl_mixer::calculate_music_length()
+    {
+        if( sound_chunk == nullptr || sound_chunk == NULL )
+        {
+            sound_length_ms = 0;
+            return 0;
+        }
+
+        Uint16 audioFormat;  // current audio format constant
+        int audioFrequency,  // frequency rate of the current audio format
+        audioChannelCount,  // number of channels of the current audio format
+        audioAllocatedMixChannelsCount;  // number of mix channels allocated
+
+        /* bytes / samplesize == sample points */
+        Mix_QuerySpec( &audioFrequency, &audioFormat, &audioChannelCount );
+
+        const Uint32 points = sound_chunk->alen / sdl_mixer_audio_format_sample_size(audioFormat);
+
+        /* sample points / channels == sample frames */
+        const Uint32 frames = (points / audioChannelCount);
+
+        /* (sample frames * 1000) / frequency == play length, in ms */
+        sound_length_ms_total =  ((frames * 1000) / audioFrequency);
+        computer_lengths();
+        return sound_length_ms_total;
     }
 
     sound_base * sound_sdl_mixer::create_new( std::string s_name, std::string s_file , int group_id_number, int s_id )
@@ -167,12 +208,19 @@ namespace gpe
             sound_chunk = NULL;
             sound_loaded = false;
             sound_error =  Mix_GetError();
+            sound_length_ms = 0;
+            sound_length_seconds = 0;
+            sound_length_minutes = 0;
+            sound_length_hours = 0;
+            sound_length_days = 0;
         }
         else
         {
             sound_loaded = true;
             sound_error = "";
+            calculate_music_length();
         }
+
         return sound_loaded;
     }
 
@@ -237,6 +285,7 @@ namespace gpe
         unload();
     }
 
+
     sound_base * music_sdl_mixer::create_new( std::string s_name, std::string s_file , int group_id_number, int s_id  )
     {
         return new music_sdl_mixer( s_name, s_file, group_id_number, s_id);
@@ -283,7 +332,9 @@ namespace gpe
         if( sdl_music != NULL)
         {
             Mix_PlayMusic( sdl_music, play_count );
+            return true;
         }
+        return false;
     }
 
     void music_sdl_mixer::stop()

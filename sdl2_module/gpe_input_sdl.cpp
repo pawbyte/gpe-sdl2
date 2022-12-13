@@ -3,10 +3,10 @@ gpe_input_sdl.cpp
 This file is part of:
 GAME PENCIL ENGINE
 https://www.pawbyte.com/gamepencilengine
-Copyright (c) 2014-2021 Nathan Hurde, Chase Lee.
+Copyright (c) 2014-2023 Nathan Hurde, Chase Lee.
 
-Copyright (c) 2014-2021 PawByte LLC.
-Copyright (c) 2014-2021 Game Pencil Engine contributors ( Contributors Page )
+Copyright (c) 2014-2023 PawByte LLC.
+Copyright (c) 2014-2023 Game Pencil Engine contributors ( Contributors Page )
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the “Software”), to deal
@@ -60,10 +60,7 @@ namespace gpe
         {
             //SDL_gamepadClose( assigned_sdl_controller );
             //assigned_sdl_controller = NULL;
-            if (SDL_JoystickGetAttached(assigned_sdl_controller) )
-            {
-                SDL_JoystickClose( assigned_sdl_controller);
-            }
+
             assigned_sdl_controller = NULL;
         }
     }
@@ -123,10 +120,23 @@ namespace gpe
         SDL_GameControllerAddMapping("gamepaddb.txt");
         SDL_StartTextInput();
         manager_type = "sdl";
+
+        for( int og_gamepad_id = gp_max_devices; og_gamepad_id >=0 ; og_gamepad_id--)
+        {
+            if( game_pads[ og_gamepad_id ] = nullptr )
+            {
+                delete game_pads[ og_gamepad_id ];
+                game_pads[ og_gamepad_id ] = nullptr;
+            }
+        }
+
+        //Creates the gamepads
         for( int i_gamepad = 0; i_gamepad < gp_max_devices; i_gamepad++ )
         {
-            game_pads_sdl[i_gamepad] = new gamepad_sdl();
+            game_pads[ i_gamepad ] = game_pads_sdl[i_gamepad] = new gamepad_sdl();
         }
+
+
         key_bind_qwerty();
     }
 
@@ -142,7 +152,7 @@ namespace gpe
 
     bool input_manager_sdl::clipboard_set( std::string new_clipboard_string)
     {
-        SDL_SetClipboardText( new_clipboard_string.c_str() );
+        return SDL_SetClipboardText( new_clipboard_string.c_str() );
     }
 
     std::string input_manager_sdl::clipboard_string()
@@ -291,12 +301,14 @@ namespace gpe
         {
             error_log->report("gamepad["+ stg_ex::int_to_string(gamepad_id )+"] disconnected..." );
         }
+        return true;
     }
 
     bool input_manager_sdl::gamepad_setup( int gamepad_id )
     {
         SDL_ClearError();
         int jStickCount = SDL_NumJoysticks();
+
         if( jStickCount < 0 )
         {
             if( debug_input )
@@ -404,7 +416,7 @@ namespace gpe
         }
         else if( debug_input )
         {
-            error_log->report("Failed...");
+            error_log->report("Failed to open joystick["+ stg_ex::int_to_string(gamepad_id) +"]...");
             error_log->report(SDL_GetError( ));
             return false;
         }

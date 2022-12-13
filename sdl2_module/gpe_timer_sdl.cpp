@@ -3,10 +3,10 @@ gpe_timer.cpp
 This file is part of:
 GAME PENCIL ENGINE
 https://www.pawbyte.com/gamepencilengine
-Copyright (c) 2014-2021 Nathan Hurde, Chase Lee.
+Copyright (c) 2014-2023 Nathan Hurde, Chase Lee.
 
-Copyright (c) 2014-2021 PawByte LLC.
-Copyright (c) 2014-2021 Game Pencil Engine contributors ( Contributors Page )
+Copyright (c) 2014-2023 PawByte LLC.
+Copyright (c) 2014-2023 Game Pencil Engine contributors ( Contributors Page )
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the “Software”), to deal
@@ -31,7 +31,7 @@ SOFTWARE.
 
 */
 
-#include "../other_libs/stg_ex.h"
+#include "../gpe/internal_libs/stg_ex.h"
 #include "gpe_timer_sdl.h"
 
 namespace gpe
@@ -89,6 +89,7 @@ namespace gpe
         timer_frequency = (float)SDL_GetPerformanceFrequency();
         ticks_elapsed = 0;
         frames_passed_counter = 0;
+        vsync_is_on = true;
     }
 
     time_keeper_sdl::~time_keeper_sdl()
@@ -111,6 +112,11 @@ namespace gpe
         ticks_now = get_ticks();
         delta_ticks =  ticks_now - ticks_start;
         delta_performance = time_now - time_past;
+
+        if( vsync_is_on )
+        {
+            return;
+        }
 
         if( delta_ticks < ticks_per_frame )
         {
@@ -257,6 +263,20 @@ namespace gpe
             fps_ratio = 1.f;
         }
         recorded_fps.clear();
+    }
+
+    void time_keeper_sdl::set_vysnc( bool vs_on )
+    {
+        vsync_is_on = vs_on;
+
+        if( vsync_is_on )
+        {
+            SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");
+        }
+        else
+        {
+            SDL_SetHint(SDL_HINT_RENDER_VSYNC, "0");
+        }
     }
 
     void time_keeper_sdl::set_average_fps_count( int new_count )

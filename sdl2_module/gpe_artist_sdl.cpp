@@ -3,10 +3,10 @@ gpe_artist_sdl.cpp
 This file is part of:
 GAME PENCIL ENGINE
 https://www.pawbyte.com/gamepencilengine
-Copyright (c) 2014-2021 Nathan Hurde, Chase Lee.
+Copyright (c) 2014-2023 Nathan Hurde, Chase Lee.
 
-Copyright (c) 2014-2021 PawByte LLC.
-Copyright (c) 2014-2021 Game Pencil Engine contributors ( Contributors Page )
+Copyright (c) 2014-2023 PawByte LLC.
+Copyright (c) 2014-2023 Game Pencil Engine contributors ( Contributors Page )
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the “Software”), to deal
@@ -50,6 +50,13 @@ namespace gpe
 
         artist_renderer = aRenderer;
 
+        if( aRenderer != nullptr )
+        {
+            for( int i_rm = 0; i_rm < render_mode_max; i_rm++ )
+            {
+                render_mode_supported[ i_rm] = aRenderer->is_render_mode_supported( i_rm );
+            }
+        }
         gpeSDLRenderer = aRenderer;
         if( gpeSDLRenderer !=NULL )
         {
@@ -62,18 +69,18 @@ namespace gpe
         for( int circlePX = 32; circlePX <= 512; circlePX += 32 )
         {
             tempPRCircleFilled = new texture_sdl();
-            tempPRCircleOutline = new texture_sdl();
 
-            tempPRCircleFilled->prerender_circle( artist_renderer,circlePX, c_ltgray );
+            tempPRCircleFilled->prerender_circle( artist_renderer,circlePX, c_white );
             prerenderedCircles.push_back( tempPRCircleFilled );
 
-            //tempPRCircleOutline->prerender_circle( artist_renderer,circlePX, c_white);
-            //prerenderedCirclesOutlines.push_back( tempPRCircleOutline);
+
         }
 
         for( int i_point = 0; i_point < render_points_giant_size; i_point++)
         {
+            circle_render_points[ i_point] ={0,0};
             line_render_points[ i_point] ={0,0};
+            line_render_fpoints[ i_point] ={0,0};
             rect_render_points[ i_point] = {0,0,0,1 };
 
             geometry_render_points[i_point].position.x = 0;
@@ -82,13 +89,12 @@ namespace gpe
         }
         prerenderedSquare = new texture_sdl();
         prerenderedSquare->prerender_rectangle( artist_renderer,16,16,c_white);
-        geometry_texture = SDL_CreateTexture( sdlRenderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 1024, 1024 );
+        geometry_texture = SDL_CreateTexture( sdlRenderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, 128, 128 );
     }
 
     artist_sdl::~artist_sdl()
     {
         int preRenderedCircleFilledCount = (int)prerenderedCircles.size();
-        int preRenderedOutlineCircleCount = (int)prerenderedCirclesOutlines.size();
 
         for( int i = preRenderedCircleFilledCount -1; i >=0 ; i--)
         {
@@ -99,14 +105,6 @@ namespace gpe
             }
         }
 
-        for( int j = preRenderedOutlineCircleCount -1; j>=0 ; j--)
-        {
-            if( prerenderedCirclesOutlines[j] = NULL )
-            {
-                delete prerenderedCirclesOutlines[j];
-                prerenderedCirclesOutlines[j] = NULL;
-            }
-        }
 
         if( geometry_texture != NULL )
         {
@@ -146,20 +144,21 @@ namespace gpe
         float vx  = 0,  vy = 0;
 
         int arc_i = 0;
+
         for( arc_i = 0; arc_i < arc_vertices ; arc_i++)
         {
             vx = arc_x + arc_radius * cos(theta);
             vy = arc_y + arc_radius * sin(theta);
-            line_render_points[arc_i].x = vx;
-            line_render_points[arc_i].y = vy;
+            line_render_fpoints[arc_i].x = vx;
+            line_render_fpoints[arc_i].y = vy;
             theta += step;
         }
 
         //Connects the last point to the start point
         vx = arc_x + arc_radius * cos(start_angle);
         vy = arc_y + arc_radius * sin(start_angle);
-        line_render_points[arc_i].x = vx;
-        line_render_points[arc_i].y = vy;
+        line_render_fpoints[arc_i].x = vx;
+        line_render_fpoints[arc_i].y = vy;
 
         if( arc_vertices == 0)
         {
@@ -169,7 +168,7 @@ namespace gpe
         SDL_SetRenderDrawColor( sdlRenderer,render_color->get_r(),render_color->get_g(),render_color->get_b(),alpha_channel );
 
         //Draws the entire arc
-        SDL_RenderDrawLinesF( sdlRenderer, line_render_points, arc_i+1 );
+        SDL_RenderDrawLinesF( sdlRenderer, line_render_fpoints, arc_i+1 );
         arcs_in_frame++;
     }
 
@@ -227,6 +226,119 @@ namespace gpe
         }
         arcs_in_frame++;
     }
+
+    void artist_sdl::render_bezier_curve(  float x1, float y1, float x2, float y2 )
+    {
+        render_bezier_curve_width_color( x1, y1, x2, y2, 1, color_current, alpha_current );
+    }
+
+    void artist_sdl::render_bezier_curve_color(  float x1, float y1, float x2, float y2,  color *render_color, int alpha_channel)
+    {
+        render_bezier_curve_width_color( x1, y1, x2, y2, 1, render_color, alpha_channel );
+    }
+
+    void artist_sdl::render_bezier_curve_width_color(  float x1, float y1, float x2, float y2, int line_width, color *render_color, int alpha_channel)
+    {
+        //draw a straight line
+        if( beizer_line_segments <= 2 )
+        {
+            render_line_width_color( x1, y1, x2, y2, line_width, render_color, alpha_channel );
+            return;
+        }
+        else if( line_width < 1 || alpha_channel < 1)
+        {
+            return;
+        }
+
+        float previous_x = x1;
+        float previous_y = y1;
+
+        float current_x = 0, current_y = 0;
+        int i = 0;
+
+        if( line_width == 1 )
+        {
+            int point_pos = 0;
+
+            for ( i= 1; i <= beizer_line_segments ; i++)
+            {
+                // Cubic easing in-out
+                // NOTE: Easing is calculated only for y position value
+                current_y = ease_cubic_in_out( (float)i, y1, y2 - y1, (float)beizer_line_segments);
+                current_x = previous_x + (x2 - x1)/ (float)beizer_line_segments;
+
+                render_line_width_color( previous_x, previous_y, current_x, current_y, line_width, render_color, alpha_channel );
+                line_render_fpoints[point_pos].x = previous_x;
+                line_render_fpoints[point_pos].y = previous_y;
+                line_render_fpoints[point_pos+1].x = current_x;
+                line_render_fpoints[point_pos+1].y = current_y;
+                previous_x = current_x;
+                previous_y = current_y;
+                point_pos+=2;
+            }
+            SDL_RenderDrawLinesF( sdlRenderer, line_render_fpoints, point_pos );
+        }
+        else
+        {
+            int widthed_segments =  beizer_line_segments;//  * 128;
+            int blend_mode_past = blend_current_mode;
+            //blend_current_mode = blend_mode_blend;
+
+            /*
+            int max_circles = (int)prerenderedCircles.size();
+            for( int i_circles = 0; i_circles < max_circles; i_circles++ )
+            {
+                prerenderedCircles[i_circles]->set_blend_mode( blend_mode_blend );
+            }
+            prerenderedSquare->set_blend_mode( blend_mode_blend );
+            */
+
+            for ( i= 1; i <= widthed_segments ; i++)
+            {
+                // Cubic easing in-out
+                // NOTE: Easing is calculated only for y position value
+                current_y = ease_cubic_in_out( (float)i, y1, y2 - y1, (float)widthed_segments);
+                current_x = previous_x + (x2 - x1)/ (float)widthed_segments;
+
+                render_circle_filled_color( previous_x, previous_y, line_width/2, render_color, alpha_channel );
+                render_line_width_color( previous_x, previous_y, current_x, current_y, line_width, render_color, alpha_channel );
+                previous_x = current_x;
+                previous_y = current_y;
+            }
+            blend_current_mode = blend_mode_past;
+        }
+    }
+
+    void artist_sdl::render_bezier_curve_controlled(  shape_point2d point1, shape_point2d point2, shape_point2d control_point )
+    {
+
+    }
+
+    void artist_sdl::render_bezier_curve_controlled_color(  shape_point2d point1, shape_point2d point2, shape_point2d control_point ,  color *render_color, int alpha_channel)
+    {
+
+    }
+
+    void artist_sdl::render_bezier_curve_controlled_width_color(  shape_point2d point1, shape_point2d point2, shape_point2d control_point , int line_width, color *render_color, int alpha_channel )
+    {
+
+    }
+
+    void artist_sdl::render_bezier_curve_quad( shape_point2d point1, shape_point2d point2, shape_point2d control_point1, shape_point2d control_point2 )
+    {
+
+    }
+
+    void artist_sdl::render_bezier_curve_quad_color(  shape_point2d point1, shape_point2d point2, shape_point2d control_point1, shape_point2d control_point2 ,  color *render_color, int alpha_channel )
+    {
+
+    }
+
+    void artist_sdl::render_bezier_curve_quad_width_color(  shape_point2d point1, shape_point2d point2, shape_point2d control_point1, shape_point2d control_point2 , int line_width, color *render_color, int alpha_channel )
+    {
+
+    }
+
 
     bool artist_sdl::render_circle_filled( int x, int y, int rad )
     {
@@ -292,8 +404,11 @@ namespace gpe
 
         SDL_SetRenderDrawColor( sdlRenderer, render_color->get_r(), render_color->get_g(),render_color->get_b(), alpha_channel );
 
+        //SDL_Point all_circle_points[9999999];
+        int circle_point_total = 0;
         while (circle_x >= circle_y)
         {
+          /*
           //  Each of the following renders an octant of the circle
           SDL_RenderDrawPoint(sdlRenderer, x + circle_x, y - circle_y );
           SDL_RenderDrawPoint(sdlRenderer, x + circle_x, y + circle_y );
@@ -303,6 +418,33 @@ namespace gpe
           SDL_RenderDrawPoint(sdlRenderer, x + circle_y, y + circle_x);
           SDL_RenderDrawPoint(sdlRenderer, x - circle_y, y - circle_x);
           SDL_RenderDrawPoint(sdlRenderer, x - circle_y, y + circle_x);
+          */
+
+          circle_render_points[circle_point_total+0].x = x + circle_x;
+          circle_render_points[circle_point_total+0].y = y - circle_y;
+
+          circle_render_points[circle_point_total+1].x = x + circle_x;
+          circle_render_points[circle_point_total+1].y = y + circle_y;
+
+          circle_render_points[circle_point_total+2].x = x - circle_x;
+          circle_render_points[circle_point_total+2].y = y - circle_y;
+
+          circle_render_points[circle_point_total+3].x = x- circle_x;
+          circle_render_points[circle_point_total+3].y = y + circle_y;
+
+          circle_render_points[circle_point_total+4].x = x + circle_y;
+          circle_render_points[circle_point_total+4].y = y - circle_x;
+
+          circle_render_points[circle_point_total+5].x = x + circle_y;
+          circle_render_points[circle_point_total+5].y = y + circle_x;
+
+          circle_render_points[circle_point_total+6].x =  x - circle_y;
+          circle_render_points[circle_point_total+6].y =  y - circle_x;
+
+          circle_render_points[circle_point_total+7].x = x - circle_y;
+          circle_render_points[circle_point_total+7].y = y + circle_x;
+
+          circle_point_total+=8;
 
           if (error <= 0)
           {
@@ -318,6 +460,8 @@ namespace gpe
              error += (tx - diameter);
           }
         }
+        SDL_RenderDrawPoints( sdlRenderer, circle_render_points, circle_point_total );
+
         circles_in_frame++;
         return true;
     }
@@ -349,14 +493,7 @@ namespace gpe
         }
         if( circleId >=0 && circleId < preRenderedCountSize )
         {
-            if( renderOutLine )
-            {
-                tempCircleTexture = prerenderedCirclesOutlines[circleId];
-            }
-            else
-            {
-                tempCircleTexture = prerenderedCircles[circleId];
-            }
+            tempCircleTexture = prerenderedCircles[circleId];
         }
 
         if( tempCircleTexture!=NULL )
@@ -396,26 +533,12 @@ namespace gpe
 
         if( circleId >=0 && circleId < preRenderedCountSize )
         {
-            if( renderOutLine )
-            {
-                tempCircleTexture = prerenderedCirclesOutlines[circleId];
-            }
-            else
-            {
-                tempCircleTexture = prerenderedCircles[circleId];
-            }
+            tempCircleTexture = prerenderedCircles[circleId];
         }
 
         if( circleId >=0 && circleId < preRenderedCountSize )
         {
-            if( renderOutLine )
-            {
-                tempCircleTexture = prerenderedCirclesOutlines[circleId];
-            }
-            else
-            {
-                tempCircleTexture = prerenderedCircles[circleId];
-            }
+           tempCircleTexture = prerenderedCircles[circleId];
         }
 
         if( tempCircleTexture!=NULL )
@@ -738,7 +861,7 @@ namespace gpe
                 line_render_points[line_render_point_position+1] = {(int)curx1, scanlineY};
             }
             */
-            rect_render_points[line_render_point_position] = {(int)curx1, scanlineY, curx2 - curx1, 1 };
+            rect_render_points[line_render_point_position] = { curx1, (float)scanlineY, curx2 - curx1, 1.f };
 
             use_left_coord = !use_left_coord;
             curx2 += invslope2;
@@ -783,7 +906,7 @@ namespace gpe
             }
             */
             use_left_coord = !use_left_coord;
-            rect_render_points[line_render_point_position] = {(int)curx1, scanlineY, curx2 - curx1, 1 };
+            rect_render_points[line_render_point_position] = { curx1, (float)scanlineY, curx2 - curx1, 1.f };
 
             curx1 -= invslope1;
             curx2 -= invslope2;
@@ -821,12 +944,12 @@ namespace gpe
         {
             SDL_SetRenderDrawColor( sdlRenderer,render_color->get_r(),render_color->get_g(),render_color->get_b(),alpha_channel );
 
-            line_render_points[0] = { tri->vertices[0].x, tri->vertices[0].y};
-            line_render_points[1] = { tri->vertices[1].x, tri->vertices[2].y};
-            line_render_points[2] = { tri->vertices[1].x, tri->vertices[2].y};
-            line_render_points[2] = { tri->vertices[1].x, tri->vertices[2].y};
+            line_render_fpoints[0] = { tri->vertices[0].x, tri->vertices[0].y};
+            line_render_fpoints[1] = { tri->vertices[1].x, tri->vertices[2].y};
+            line_render_fpoints[2] = { tri->vertices[1].x, tri->vertices[2].y};
+            line_render_fpoints[2] = { tri->vertices[1].x, tri->vertices[2].y};
 
-            SDL_RenderDrawLinesF( sdlRenderer, line_render_points, 3 );
+            SDL_RenderDrawLinesF( sdlRenderer, line_render_fpoints, 3 );
             line_render_point_position = 0;
         }
         else
@@ -853,7 +976,7 @@ namespace gpe
             line_render_points[1] ={ x2, y2};
             line_render_points[2] ={ x3, y3};
 
-            SDL_RenderDrawLinesF( sdlRenderer, line_render_points, 3 );
+            SDL_RenderDrawLines( sdlRenderer, line_render_points, 3 );
             line_render_point_position = 0;
         }
         else
@@ -1026,8 +1149,8 @@ namespace gpe
         int lineSize  = ceil( semath::get_distance(x1, y1, x2, y2 ) );
         //render_line(x1,y1,x2,y2, color_current, alpha_current );
 
-        x1  = x1 + semath::lengthdir_x( (lineSize+line_width)/2, lineAngle );
-        y1  = y1 + semath::lengthdir_y( (lineSize+line_width)/2, lineAngle );
+        x1  = x1 - semath::lengthdir_x( (lineSize+line_width)/2, lineAngle );
+        y1  = y1 - semath::lengthdir_y( (lineSize+line_width)/2, lineAngle );
         prerenderedSquare->render_tex_special(x1,y1, lineAngle,lineSize,line_width, color_current, NULL, alpha_current );
     }
 
@@ -1039,12 +1162,12 @@ namespace gpe
             SDL_RenderDrawLine( sdlRenderer, x1, y1, x2, y2);
             return;
         }
-        if( line_width < 0 )
+        else if( line_width < 0 )
         {
             return;
         }
         float lineAngle = semath::get_direction(x1, y1, x2, y2 );
-        int lineSize  = ceil( semath::get_distance(x1, y1, x2, y2 ) );
+        int lineSize  =  semath::get_distance(x1, y1, x2, y2 ) ;
         if( lineSize <= 0)
         {
             return;
@@ -1054,11 +1177,64 @@ namespace gpe
         {
             return;
         }
-        x1  = x1 + semath::lengthdir_x( lineSize/2, lineAngle );
-        y1  = y1 + semath::lengthdir_y( lineSize/2, lineAngle );
 
+        int ogX1 = x1;
+        int ogY1 = y1;
+
+        int ogX2 = x2;
+        int ogY2 = y2;
+
+        x1  = x1 + semath::lengthdir_x( lineSize/2 , lineAngle );
+        y1  = y1 + semath::lengthdir_y( lineSize/2 , lineAngle );
+
+
+        x2  = x1 - semath::lengthdir_x( lineSize*3/2, lineAngle );
+        y2  = y1 - semath::lengthdir_y( lineSize*3/2, lineAngle );
+
+        //render_circle_filled_color( ogX1, ogY1, line_width/2, render_color, alpha_channel );
+        //render_circle_filled_color( ogX2, ogY2, line_width/2, render_color, alpha_channel );
 
         prerenderedSquare->render_tex_special(x1,y1, lineAngle,lineSize,line_width, render_color, NULL, alpha_channel );
+
+        /*
+        SDL_Vertex line_width_vertices[4];
+        for( int i_vert = 0; i_vert < 4; i_vert++ )
+        {
+            line_width_vertices[i_vert].position.x = 0;
+            line_width_vertices[i_vert].position.y = 0;
+            line_width_vertices[i_vert].color.r = render_color->get_r();
+            line_width_vertices[i_vert].color.g = render_color->get_g();
+            line_width_vertices[i_vert].color.b = render_color->get_b();
+            line_width_vertices[i_vert].color.a = alpha_channel;
+        }
+
+
+        Not completed: SDL_RenderGeometry based method for line
+        //x1/y1 coords
+        line_width_vertices[0].position.x = ogX1 + semath::lengthdir_x( line_width/2, lineAngle -90 );
+        line_width_vertices[0].position.y = ogY1 + semath::lengthdir_x( line_width/2, lineAngle -90 );
+
+        line_width_vertices[1].position.x = ogX1 + semath::lengthdir_x( line_width/2, lineAngle +90);
+        line_width_vertices[1].position.y = ogY1 + semath::lengthdir_x( line_width/2, lineAngle +90);
+
+        //x2/y2 coords
+        line_width_vertices[2].position.x = ogX2 - semath::lengthdir_x( line_width/2, lineAngle -45 );
+        line_width_vertices[2].position.y = ogY2 - semath::lengthdir_x( line_width/2, lineAngle -45 );
+
+        line_width_vertices[3].position.x = ogX2 + semath::lengthdir_x( line_width/2, lineAngle +45 );
+        line_width_vertices[3].position.y = ogY2 + semath::lengthdir_x( line_width/2, lineAngle +45 );
+
+
+        int line_indices[6];
+        line_indices[0] = 0;
+        line_indices[1] = 1;
+        line_indices[2] = 2;
+        line_indices[3] = 1;
+        line_indices[4] = 2;
+        line_indices[5] = 3;
+        SDL_RenderGeometry( sdlRenderer, NULL, line_width_vertices, 4, line_indices, 6);
+        */
+
     }
 
     void artist_sdl::render_horizontal_line(int y, int x1, int x2)
@@ -1265,4 +1441,41 @@ namespace gpe
         }
     }
 
+
+    /*//----------------------------------------------------------------------------------
+    // Cubic Easing out via raylib shapes.c
+        https://easings.net/#easeInOutCubic?
+        https://github.com/raysan5/raylib/blob/a940f41b4bfb681c9cbed9e95d1b73fee64d5bb8/src/rshapes.c
+
+        LICENSE: zlib/libpng
+        *
+        *   Copyright (c) 2013-2022 Ramon Santamaria (@raysan5)
+        *
+        *   This software is provided "as-is", without any express or implied warranty. In no event
+        *   will the authors be held liable for any damages arising from the use of this software.
+        *
+        *   Permission is granted to anyone to use this software for any purpose, including commercial
+        *   applications, and to alter it and redistribute it freely, subject to the following restrictions:
+        *
+        *     1. The origin of this software must not be misrepresented; you must not claim that you
+        *     wrote the original software. If you use this software in a product, an acknowledgment
+        *     in the product documentation would be appreciated but is not required.
+        *
+        *     2. Altered source versions must be plainly marked as such, and must not be misrepresented
+        *     as being the original software.
+        *
+        *     3. This notice may not be removed or altered from any source distribution.
+    //----------------------------------------------------------------------------------
+
+    // Cubic easing in-out
+    */
+
+    float artist_sdl::ease_cubic_in_out(float t, float b, float c, float d)
+    {
+        if ((t /= 0.5f*d) < 1) return 0.5f*c*t*t*t + b;
+
+        t -= 2;
+
+        return 0.5f*c*(t*t*t + 2.0f) + b;
+    }
 }

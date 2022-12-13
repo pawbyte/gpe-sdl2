@@ -3,10 +3,10 @@ GPE_Texture.h
 This file is part of:
 GAME PENCIL ENGINE
 https://www.pawbyte.com/gamepencilengine
-Copyright (c) 2014-2021 Nathan Hurde, Chase Lee.
+Copyright (c) 2014-2023 Nathan Hurde, Chase Lee.
 
-Copyright (c) 2014-2021 PawByte LLC.
-Copyright (c) 2014-2021 Game Pencil Engine contributors ( Contributors Page )
+Copyright (c) 2014-2023 PawByte LLC.
+Copyright (c) 2014-2023 Game Pencil Engine contributors ( Contributors Page )
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the “Software”), to deal
@@ -42,7 +42,7 @@ SOFTWARE.
 #include "../gpe/gpe_error_logger.h"
 #include "../gpe/gpe_globals.h"
 #include "../gpe/gpe_texture_base.h"
-#include "../other_libs/stg_ex.h"
+#include "../gpe/internal_libs/stg_ex.h"
 #include "gpe_renderer_sdl.h"
 #include "sdl_surface_ex.h"
 
@@ -52,8 +52,12 @@ namespace gpe
     {
         protected:
             SDL_Texture * texImg;
+            //SDL_Texture * texImg_effect;
+            //SDL_Surface * sdlTexSurface;
+            //SDL_Surface * sdlTexSurface_effect;
+            bool is_prerendered;
         public:
-            texture_sdl();
+            texture_sdl(bool store_pixels  = false ); //defaults to false
             ~texture_sdl();
             void change_alpha( Uint8 alpha );
             void change_color( color * color_new);
@@ -62,10 +66,25 @@ namespace gpe
             bool copy_image_source(std::string directory_output_name);
             texture_base * create_new();
 
+            virtual uint32_t get_pixel_32bit(int x, int y );
+            virtual void get_pixel_values(int x, int y, uint8_t * r, uint8_t * g, uint8_t * b, uint8_t * a );
+
             renderer_system_sdl * get_gpe_renderer_sdl(renderer_base * renderer);
             SDL_Renderer * get_sdl_renderer(renderer_base * renderer);
             SDL_Texture * get_sdl_texture();
-            void load_new_texture( renderer_base * renderer, std::string file_name, int id = -1, bool transparent = true, bool useLinearScaling = false );
+
+            void load_new_texture( const std::string& file_name, int id = -1, bool transparent = true, bool useLinearScaling = false, uint8_t colorkeyR = 255, uint8_t colorkeyG = 0, uint8_t colorkeyB = 255 );
+
+            virtual bool modify_texture_grayscale( );
+            virtual bool modify_texture_invert( );
+            virtual bool modify_texture_merge_color_rgba( color * color_key, float amount );
+            virtual bool modify_texture_recolor_rgba(  color * color_key, float amount );
+            virtual bool modify_texture_remove_color_rgba( color * color_key );
+            virtual bool modify_texture_selective_color( color * selected_color, float difference_allowed = 0.25  );
+            virtual bool modify_texture_selective_color_duo( color * selected_color1, color * selected_color2, float difference_allowed = 0.25  );
+            virtual bool modify_texture_selective_color_trio( color * selected_color1, color * selected_color2, color * selected_color3, float difference_allowed = 0.25 );
+            virtual bool modify_texture_flip( int flags );
+
             void prerender_circle( renderer_base * renderer, int rad, color * circleColor,  Uint8 alpha = 255,int id = -1, bool transparent = true, bool useLinearScaling = true , bool isOutline = false );
             void prerender_triangle( renderer_base * renderer, shape_triangle2d,  color * circleColor,  uint8_t alpha = 255 );
             void prerender_rectangle( renderer_base * renderer, int w, int h, color * color_new, int id = -1, bool transparent = true, bool useLinearScaling = true  , bool isOutline = false);
@@ -81,8 +100,17 @@ namespace gpe
             void render_tex_special(  int x, int y, float render_angle, int new_width = -1, int new_height = -1, color * render_color = NULL, gpe::shape_rect* clip = NULL , int alpha = 255 );
             void render_tex_special_at_point(  int x, int y, float render_angle, int point_x, int point_y,int new_width = -1, int new_height = -1, color * render_color = NULL, gpe::shape_rect* clip = NULL , int alpha = 255 );
 
+            virtual bool reset_effect_texture();
+            virtual int save_as_bmp( const std::string& file_location, bool save_effect = false );
+            virtual int save_as_png( const std::string& file_location, bool save_effect = false );
+
             void set_alpha( int alpha);
             void set_blend_mode( int blend_mode_new);
+            virtual void set_pixel_32bit( int x, int y, uint32_t pixel ); //requires pixels to be stored
+            virtual void set_pixel_values( int x, int y, uint8_t r, uint8_t g, uint8_t b, uint8_t a ); //requires pixels to be stored
+            virtual bool update_pixels(); //requires pixels to be stored
+
     };
 }
+
 #endif //GPE_TEXTURE_SDL_H
