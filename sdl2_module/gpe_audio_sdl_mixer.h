@@ -3,10 +3,10 @@ gpe_audio_sdl_mixer.h
 This file is part of:
 GAME PENCIL ENGINE
 https://www.pawbyte.com/gamepencilengine
-Copyright (c) 2014-2021 Nathan Hurde, Chase Lee.
+Copyright (c) 2014-2023 Nathan Hurde, Chase Lee.
 
-Copyright (c) 2014-2021 PawByte LLC.
-Copyright (c) 2014-2021 Game Pencil Engine contributors ( Contributors Page )
+Copyright (c) 2014-2023 PawByte LLC.
+Copyright (c) 2014-2023 Game Pencil Engine contributors ( Contributors Page )
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the “Software”), to deal
@@ -36,7 +36,6 @@ SOFTWARE.
 
 #include <SDL2/SDL_mixer.h>
 #include "../gpe/gpe_audio_base.h"
-
 namespace gpe
 {
     class sound_sdl_mixer: public sound_base
@@ -46,6 +45,7 @@ namespace gpe
         public:
             sound_sdl_mixer( std::string s_name, std::string s_file , int group_id_number =-1, int s_id = -1 );
             ~sound_sdl_mixer();
+            int calculate_music_length();
             sound_base * create_new( std::string s_name, std::string s_file , int group_id_number =-1, int s_id = -1 );
             float get_volume();
 
@@ -74,8 +74,19 @@ namespace gpe
             void unload();
     };
 
+    class audio_controller_sdl_mixer: public audio_controller_base
+    {
+        protected:
+
+
+        public:
+            audio_controller_sdl_mixer();
+            ~audio_controller_sdl_mixer();
+    };
+
     bool init_sdl_mixer_audio_system(int audio_frequency  = 22050, Uint16 audio_format = MIX_DEFAULT_FORMAT, int audio_max_channels = MIX_DEFAULT_CHANNELS, int audio_chunksize  = 1024);
     void quit_sdl_mixer_audio_system();
+    Uint16 sdl_mixer_audio_format_sample_size(Uint16 format);
 }
 
 #endif //gpe_audio_sdl_h

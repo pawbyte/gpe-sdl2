@@ -3,10 +3,10 @@ gpe_artist_sdl.h
 This file is part of:
 GAME PENCIL ENGINE
 https://www.pawbyte.com/gamepencilengine
-Copyright (c) 2014-2021 Nathan Hurde, Chase Lee.
+Copyright (c) 2014-2023 Nathan Hurde, Chase Lee.
 
-Copyright (c) 2014-2021 PawByte LLC.
-Copyright (c) 2014-2021 Game Pencil Engine contributors ( Contributors Page )
+Copyright (c) 2014-2023 PawByte LLC.
+Copyright (c) 2014-2023 Game Pencil Engine contributors ( Contributors Page )
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the “Software”), to deal
@@ -39,7 +39,7 @@ SOFTWARE.
 #include "../gpe/gpe_globals.h"
 #include "../gpe/gpe_camera.h"
 #include "../gpe/gpe_shared_resources.h"
-#include "../other_libs/semath.h"
+#include "../gpe/internal_libs/semath.h"
 
 #include "gpe_renderer_sdl.h"
 #include "sdl_surface_ex.h"
@@ -60,10 +60,11 @@ namespace gpe
             renderer_system_sdl * gpeSDLRenderer;
             texture_sdl * prerenderedSquare;
             std::vector<texture_sdl * >prerenderedCircles;
-            std::vector<texture_sdl * >prerenderedCirclesOutlines;
             SDL_Texture * geometry_texture;
             shape_point2d triangle_midpoint;
-            SDL_FPoint line_render_points[ render_points_giant_size];
+            SDL_Point circle_render_points[ render_points_giant_size];
+            SDL_Point line_render_points[ render_points_giant_size];
+            SDL_FPoint line_render_fpoints[ render_points_giant_size];
             SDL_FRect rect_render_points[ render_points_giant_size];
             SDL_Vertex  geometry_render_points[ render_points_giant_size]; //Added for SDL_RenderGeometry from 2.0.18
             int line_render_point_position;
@@ -91,6 +92,21 @@ namespace gpe
 
              virtual void render_arc_width( float arc_x, float arc_y, float arc_radius, float line_width, float start_angle, float end_angle, float arc_vertices  );
              virtual void render_arc_width_color( float arc_x, float arc_y,float arc_radius, float line_width, float start_angle, float end_angle, float arc_vertices,  color * render_color = NULL, int alpha_channel = 255 );
+
+            //Bezier Curves Rendering [ END ]
+            inline float ease_cubic_in_out(float t, float b, float c, float d);
+            virtual void render_bezier_curve(  float x1, float y1, float x2, float y2 );
+            virtual void render_bezier_curve_color(  float x1, float y1, float x2, float y2,  color *render_color, int alpha_channel = 255);
+            virtual void render_bezier_curve_width_color(  float x1, float y1, float x2, float y2, int line_width, color *render_color, int alpha_channel = 255);
+
+            virtual void render_bezier_curve_controlled(  shape_point2d point1, shape_point2d point2, shape_point2d control_point );
+            virtual void render_bezier_curve_controlled_color(  shape_point2d point1, shape_point2d point2, shape_point2d control_point ,  color *render_color, int alpha_channel = 255);
+            virtual void render_bezier_curve_controlled_width_color(  shape_point2d point1, shape_point2d point2, shape_point2d control_point , int line_width, color *render_color, int alpha_channel = 255);
+
+            virtual void render_bezier_curve_quad(  shape_point2d point1, shape_point2d point2, shape_point2d control_point1, shape_point2d control_point2 );
+            virtual void render_bezier_curve_quad_color(  shape_point2d point1, shape_point2d point2, shape_point2d control_point1, shape_point2d control_point2 ,  color *render_color, int alpha_channel = 255);
+            virtual void render_bezier_curve_quad_width_color(  shape_point2d point1, shape_point2d point2, shape_point2d control_point1, shape_point2d control_point2 , int line_width, color *render_color, int alpha_channel = 255);
+            //Bezier Curves  Rendering [ END ]
 
             //Circle and SemiCircles and Ovals Rendering Functions
              bool render_circle_filled( int x, int y, int rad);

@@ -3,10 +3,10 @@ gpe_texture_target_sdl.h
 This file is part of:
 GAME PENCIL ENGINE
 https://www.pawbyte.com/gamepencilengine
-Copyright (c) 2014-2021 Nathan Hurde, Chase Lee.
+Copyright (c) 2014-2023 Nathan Hurde, Chase Lee.
 
-Copyright (c) 2014-2021 PawByte LLC.
-Copyright (c) 2014-2021 Game Pencil Engine contributors ( Contributors Page )
+Copyright (c) 2014-2023 PawByte LLC.
+Copyright (c) 2014-2023 Game Pencil Engine contributors ( Contributors Page )
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the “Software”), to deal
@@ -44,13 +44,16 @@ namespace gpe
     {
         protected:
             SDL_Texture * sdlTargetTexture;
+            //SDL_Surface * sdlTexSurface;
         public:
-            texture_target_sdl();
+            texture_target_sdl( bool store_pixels  = false ); //defaults to false
             ~texture_target_sdl();
             void change_alpha( Uint8 alpha );
             void change_color( color * color_new);
             void change_color( Uint8 red, Uint8 green, Uint8 blue );
 
+            virtual uint32_t get_pixel_32bit(int x, int y );
+            virtual void get_pixel_values(int x, int y, uint8_t * r, uint8_t * g, uint8_t * b, uint8_t * a );
             renderer_system_sdl * get_gpe_renderer_sdl(renderer_base * renderer);
             SDL_Renderer * get_sdl_renderer(renderer_base * renderer);
             SDL_Texture * get_sdl_texture();
@@ -59,7 +62,10 @@ namespace gpe
             void render_overlay(  renderer_base * renderer,int x, int y, gpe::shape_rect* clip = NULL, int alpha = 255  );
             void render_overlay_scaled(  renderer_base * renderer,int x, int y,float x_scale, float y_scale, gpe::shape_rect* clip = NULL, color * render_color = NULL, int alpha = 255 );
 
+            virtual bool reset_effect_texture();
             void resize_target( renderer_base * renderer,int w, int h, int id = -1,bool useLinearScaling = true  );
+            virtual int save_as_bmp( const std::string& file_location, bool save_effect = false );
+            virtual int save_as_png( const std::string& file_location, bool save_effect = false );
             void set_blend_mode( int blend_mode_new);
     };
 }

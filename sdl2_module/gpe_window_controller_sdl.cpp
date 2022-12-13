@@ -3,10 +3,10 @@ gpe_window_controller.cpp
 This file is part of:
 GAME PENCIL ENGINE
 https://www.pawbyte.com/gamepencilengine
-Copyright (c) 2014-2021 Nathan Hurde, Chase Lee.
+Copyright (c) 2014-2023 Nathan Hurde, Chase Lee.
 
-Copyright (c) 2014-2021 PawByte LLC.
-Copyright (c) 2014-2021 Game Pencil Engine contributors ( Contributors Page )
+Copyright (c) 2014-2023 PawByte LLC.
+Copyright (c) 2014-2023 Game Pencil Engine contributors ( Contributors Page )
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the “Software”), to deal
@@ -104,6 +104,8 @@ namespace gpe
         SDL_SetWindowIcon( local_sdl_window, window_icon);
         SDL_SetWindowMinimumSize( local_sdl_window, settings->minWindowWidth, settings->minWindowHeight );
 
+        SDL_SetWindowResizable( local_sdl_window, SDL_FALSE );
+        window_resizing_enabled = false;
         //Set window flag
         windowed = true;
         window_id = SDL_GetWindowID( local_sdl_window );
@@ -139,6 +141,31 @@ namespace gpe
 
     bool window_controller_sdl::enable_scaling()
     {
+
+        return true;
+    }
+
+     bool window_controller_sdl::disable_window_resize()
+    {
+        if( local_sdl_window == NULL )
+        {
+            return false;
+        }
+        SDL_SetWindowResizable( local_sdl_window, SDL_FALSE );
+        window_resizing_enabled = false;
+        return true;
+    }
+
+    bool window_controller_sdl::enable_window_resize()
+    {
+        if( local_sdl_window == NULL )
+        {
+            return false;
+        }
+
+        SDL_SetWindowBordered( local_sdl_window, SDL_TRUE );
+        SDL_SetWindowResizable( local_sdl_window, SDL_TRUE );
+        window_resizing_enabled = true;
         return true;
     }
 
@@ -154,6 +181,26 @@ namespace gpe
             return false;
         }
         SDL_HideWindow( local_sdl_window );
+        return true;
+    }
+
+    bool window_controller_sdl::minimize_window()
+    {
+        if( local_sdl_window == NULL )
+        {
+            return false;
+        }
+        SDL_MinimizeWindow( local_sdl_window );
+        return true;
+    }
+
+    bool window_controller_sdl::maximize_window()
+    {
+        if( local_sdl_window == NULL )
+        {
+            return false;
+        }
+        SDL_MaximizeWindow( local_sdl_window );
         return true;
     }
 
@@ -365,6 +412,20 @@ namespace gpe
         }
         window_base_renderer = new_renderer;
         new_renderer->resize_renderer( window_width, window_height );
+    }
+
+    void window_controller_sdl::set_vysnc( bool vs_on )
+    {
+        vsync_is_on = vs_on;
+
+        if( vsync_is_on )
+        {
+            SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");
+        }
+        else
+        {
+            SDL_SetHint(SDL_HINT_RENDER_VSYNC, "0");
+        }
     }
 
     void window_controller_sdl::set_window_position( int new_x, int new_y )

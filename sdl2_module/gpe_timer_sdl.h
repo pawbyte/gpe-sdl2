@@ -3,10 +3,10 @@ gpe_timer.h
 This file is part of:
 GAME PENCIL ENGINE
 https://www.pawbyte.com/gamepencilengine
-Copyright (c) 2014-2021 Nathan Hurde, Chase Lee.
+Copyright (c) 2014-2023 Nathan Hurde, Chase Lee.
 
-Copyright (c) 2014-2021 PawByte LLC.
-Copyright (c) 2014-2021 Game Pencil Engine contributors ( Contributors Page )
+Copyright (c) 2014-2023 PawByte LLC.
+Copyright (c) 2014-2023 Game Pencil Engine contributors ( Contributors Page )
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the “Software”), to deal
@@ -45,6 +45,7 @@ namespace gpe
     class time_keeper_sdl: public time_keeper_base
     {
         protected:
+
         public:
             time_keeper_sdl( std::string t_name );
             ~time_keeper_sdl();
@@ -75,8 +76,10 @@ namespace gpe
 
             void reset_timer();
 
-            void set_fps( float fps_new = 60 );
             void set_average_fps_count( int new_count );
+            void set_fps( float fps_new = 60 );
+            void set_vysnc( bool vs_on );
+
     };
 
     bool init_sdl_time_system();

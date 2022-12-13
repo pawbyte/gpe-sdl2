@@ -3,10 +3,10 @@ gpe_renderer_sdl.cpp
 This file is part of:
 GAME PENCIL ENGINE
 https://www.pawbyte.com/gamepencilengine
-Copyright (c) 2014-2021 Nathan Hurde, Chase Lee.
+Copyright (c) 2014-2023 Nathan Hurde, Chase Lee.
 
-Copyright (c) 2014-2021 PawByte LLC.
-Copyright (c) 2014-2021 Game Pencil Engine contributors ( Contributors Page )
+Copyright (c) 2014-2023 PawByte LLC.
+Copyright (c) 2014-2023 Game Pencil Engine contributors ( Contributors Page )
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the “Software”), to deal
@@ -35,7 +35,7 @@ SOFTWARE.
 #include "../gpe/gpe_constants.h"
 #include "../gpe/gpe_globals.h"
 #include "../gpe/gpe_settings.h"
-#include "../other_libs/stg_ex.h"
+#include "../gpe/internal_libs/stg_ex.h"
 
 namespace gpe
 {
@@ -69,6 +69,11 @@ namespace gpe
         SDL_RenderClear( sdlRenderer );
         SDL_SetRenderTarget(sdlRenderer,NULL);
         SDL_SetRenderDrawBlendMode(sdlRenderer,SDL_BLENDMODE_BLEND);
+
+        render_mode_supported[ render_mode_2D_iso ] = 1; //supported, coded by user, soon scene editor should support it
+        render_mode_supported[ render_mode_pseudo3d_m7 ] = 0; //alpha phase
+        render_mode_supported[ render_mode_psuedo3d_stacked ] = 1; //supported, coded by user
+        render_mode_supported[ render_mode_psuedo3d_raycast ] = 0; //no code yet, but possible
     }
 
     renderer_system_sdl::~renderer_system_sdl()
@@ -529,6 +534,20 @@ namespace gpe
                     render_blend_mode = blend_mode_blend;
                 break;
             }
+        }
+    }
+
+    void renderer_system_sdl::set_vysnc( bool vs_on )
+    {
+        vsync_is_on = vs_on;
+
+        if( vsync_is_on )
+        {
+            SDL_SetHint(SDL_HINT_RENDER_VSYNC, "1");
+        }
+        else
+        {
+            SDL_SetHint(SDL_HINT_RENDER_VSYNC, "0");
         }
     }
 
