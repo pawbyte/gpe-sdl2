@@ -3,10 +3,10 @@ gpe_artist_sdl2.cpp
 This file is part of:
 GAME PENCIL ENGINE
 https://www.pawbyte.com/gamepencilengine
-Copyright (c) 2014-2021 Nathan Hurde, Chase Lee.
+Copyright (c) 2014-2023 Nathan Hurde, Chase Lee.
 
-Copyright (c) 2014-2021 PawByte LLC.
-Copyright (c) 2014-2021 Game Pencil Engine contributors ( Contributors Page )
+Copyright (c) 2014-2023 PawByte LLC.
+Copyright (c) 2014-2023 Game Pencil Engine contributors ( Contributors Page )
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the “Software”), to deal
@@ -52,7 +52,7 @@ namespace gpe
 
         if( aRenderer != nullptr )
         {
-            for( int i_rm = 0; i_rm < render_mode_none; i_rm++ )
+            for( int i_rm = 0; i_rm < render_mode_max; i_rm++ )
             {
                 render_mode_supported[ i_rm] = aRenderer->is_render_mode_supported( i_rm );
             }
@@ -69,13 +69,11 @@ namespace gpe
         for( int circlePX = 32; circlePX <= 512; circlePX += 32 )
         {
             tempPRCircleFilled = new texture_sdl2();
-            tempPRCircleOutline = new texture_sdl2();
 
             tempPRCircleFilled->prerender_circle( artist_renderer,circlePX, c_white );
             prerenderedCircles.push_back( tempPRCircleFilled );
 
-            //tempPRCircleOutline->prerender_circle( artist_renderer,circlePX, c_white);
-            //prerenderedCirclesOutlines.push_back( tempPRCircleOutline);
+
         }
 
         for( int i_point = 0; i_point < render_points_giant_size; i_point++)
@@ -97,7 +95,6 @@ namespace gpe
     artist_sdl2::~artist_sdl2()
     {
         int preRenderedCircleFilledCount = (int)prerenderedCircles.size();
-        int preRenderedOutlineCircleCount = (int)prerenderedCirclesOutlines.size();
 
         for( int i = preRenderedCircleFilledCount -1; i >=0 ; i--)
         {
@@ -108,14 +105,6 @@ namespace gpe
             }
         }
 
-        for( int j = preRenderedOutlineCircleCount -1; j>=0 ; j--)
-        {
-            if( prerenderedCirclesOutlines[j] = NULL )
-            {
-                delete prerenderedCirclesOutlines[j];
-                prerenderedCirclesOutlines[j] = NULL;
-            }
-        }
 
         if( geometry_texture != NULL )
         {
@@ -179,7 +168,7 @@ namespace gpe
         SDL_SetRenderDrawColor( sdlRenderer,render_color->get_r(),render_color->get_g(),render_color->get_b(),alpha_channel );
 
         //Draws the entire arc
-        SDL_RenderDrawLinesF( sdlRenderer, line_frender_points, arc_i+1 );
+        SDL_RenderDrawLinesF( sdlRenderer, line_render_fpoints, arc_i+1 );
         arcs_in_frame++;
     }
 
@@ -504,14 +493,7 @@ namespace gpe
         }
         if( circleId >=0 && circleId < preRenderedCountSize )
         {
-            if( renderOutLine )
-            {
-                tempCircleTexture = prerenderedCirclesOutlines[circleId];
-            }
-            else
-            {
-                tempCircleTexture = prerenderedCircles[circleId];
-            }
+            tempCircleTexture = prerenderedCircles[circleId];
         }
 
         if( tempCircleTexture!=NULL )
@@ -551,26 +533,12 @@ namespace gpe
 
         if( circleId >=0 && circleId < preRenderedCountSize )
         {
-            if( renderOutLine )
-            {
-                tempCircleTexture = prerenderedCirclesOutlines[circleId];
-            }
-            else
-            {
-                tempCircleTexture = prerenderedCircles[circleId];
-            }
+            tempCircleTexture = prerenderedCircles[circleId];
         }
 
         if( circleId >=0 && circleId < preRenderedCountSize )
         {
-            if( renderOutLine )
-            {
-                tempCircleTexture = prerenderedCirclesOutlines[circleId];
-            }
-            else
-            {
-                tempCircleTexture = prerenderedCircles[circleId];
-            }
+           tempCircleTexture = prerenderedCircles[circleId];
         }
 
         if( tempCircleTexture!=NULL )
@@ -893,7 +861,7 @@ namespace gpe
                 line_render_points[line_render_point_position+1] = {(int)curx1, scanlineY};
             }
             */
-            rect_render_points[line_render_point_position] = {(int)curx1, scanlineY, curx2 - curx1, 1 };
+            rect_render_points[line_render_point_position] = { curx1, (float)scanlineY, curx2 - curx1, 1.f };
 
             use_left_coord = !use_left_coord;
             curx2 += invslope2;
@@ -938,7 +906,7 @@ namespace gpe
             }
             */
             use_left_coord = !use_left_coord;
-            rect_render_points[line_render_point_position] = {(int)curx1, scanlineY, curx2 - curx1, 1 };
+            rect_render_points[line_render_point_position] = { curx1, (float)scanlineY, curx2 - curx1, 1.f };
 
             curx1 -= invslope1;
             curx2 -= invslope2;
@@ -976,12 +944,12 @@ namespace gpe
         {
             SDL_SetRenderDrawColor( sdlRenderer,render_color->get_r(),render_color->get_g(),render_color->get_b(),alpha_channel );
 
-            line_render_points[0] = { tri->vertices[0].x, tri->vertices[0].y};
-            line_render_points[1] = { tri->vertices[1].x, tri->vertices[2].y};
-            line_render_points[2] = { tri->vertices[1].x, tri->vertices[2].y};
-            line_render_points[2] = { tri->vertices[1].x, tri->vertices[2].y};
+            line_render_fpoints[0] = { tri->vertices[0].x, tri->vertices[0].y};
+            line_render_fpoints[1] = { tri->vertices[1].x, tri->vertices[2].y};
+            line_render_fpoints[2] = { tri->vertices[1].x, tri->vertices[2].y};
+            line_render_fpoints[2] = { tri->vertices[1].x, tri->vertices[2].y};
 
-            SDL_RenderDrawLinesF( sdlRenderer, line_render_points, 3 );
+            SDL_RenderDrawLinesF( sdlRenderer, line_render_fpoints, 3 );
             line_render_point_position = 0;
         }
         else
@@ -1008,7 +976,7 @@ namespace gpe
             line_render_points[1] ={ x2, y2};
             line_render_points[2] ={ x3, y3};
 
-            SDL_RenderDrawLinesF( sdlRenderer, line_render_points, 3 );
+            SDL_RenderDrawLines( sdlRenderer, line_render_points, 3 );
             line_render_point_position = 0;
         }
         else

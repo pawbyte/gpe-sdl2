@@ -5,11 +5,17 @@ namespace gpe
     animation2d_sdl2::animation2d_sdl2()
     {
         sprite_tex = NULL;
+        ck_r = 255;
+        ck_g = 0;
+        ck_b = 255;
     }
 
-    animation2d_sdl2::animation2d_sdl2(  const std::string& anim_name, const std::string& anim_filename, bool transparent_image  )
+    animation2d_sdl2::animation2d_sdl2(  const std::string& anim_name, const std::string& anim_filename, bool transparent_image, uint8_t colorkeyR, uint8_t colorkeyG , uint8_t colorkeyB   )
     {
         texture_is_transparent = transparent_image;
+        ck_r = colorkeyR;
+        ck_g = colorkeyG;
+        ck_b = colorkeyB;
         load_image(  anim_filename, transparent_image );
     }
 
@@ -37,12 +43,12 @@ namespace gpe
         animation2d::clean_up();
     }
 
-    animation2d * animation2d_sdl2::create_new( const std::string& anim_name, const std::string& anim_filename, bool transparent_image )
+    animation2d * animation2d_sdl2::create_new( const std::string& anim_name, const std::string& anim_filename, bool transparent_image, uint8_t colorkeyR, uint8_t colorkeyG , uint8_t colorkeyB )
     {
-        return new animation2d_sdl2( anim_name, anim_filename, transparent_image );
+        return new animation2d_sdl2( anim_name, anim_filename, transparent_image,  colorkeyR,  colorkeyG ,  colorkeyB );
     }
 
-    void animation2d_sdl2::load_image(  const std::string & anim_filename, bool transparent )
+    void animation2d_sdl2::load_image(  const std::string & anim_filename, bool transparent, uint8_t colorkeyR, uint8_t colorkeyG, uint8_t colorkeyB  )
     {
         clean_up();
         if( animation_texture != NULL )
@@ -54,7 +60,7 @@ namespace gpe
         file_name = anim_filename;
         if( sff_ex::file_exists( anim_filename) )
         {
-            sprite_tex->load_new_texture( anim_filename, -1,transparent );
+            sprite_tex->load_new_texture( anim_filename, -1,transparent, false,  colorkeyR, colorkeyG, colorkeyB );
             tex_width = sprite_tex->get_width();
             tex_height = sprite_tex->get_height();
         }
@@ -76,9 +82,9 @@ namespace gpe
 			return false;
 		}
 
-		if( tex_width < 16 || tex_height < 16 )
+		if( tex_width < 8 || tex_height < 8 )
 		{
-			std::cout << "/r Sprite-Texture cant render since its texture is less than 8x18Px";
+			std::cout << "/r Sprite-Texture cant render since its texture is less than 8x8px";
 			return false; //For this function we need at least 16x16px...
 		}
 
@@ -138,7 +144,7 @@ namespace gpe
 		int new_indices[ 6];
 		new_indices[0] = 0;
 		new_indices[1] = 1;
-		new_indices[2] = 2;
+		new_indices[2] = 3;
 		new_indices[3] = 1;
 		new_indices[4] = 2;
 		new_indices[5] = 3;
