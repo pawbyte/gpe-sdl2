@@ -26,7 +26,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
--Game Pencil Engine <https://www.pawbyte.com/gamepencilengine>
+-Game Pencil Engine  - SDL2 Module <https://gamepencil.net/sdl2-module/>
 
 
 */
@@ -38,7 +38,7 @@ SOFTWARE.
 #include <map>
 
 #include <SDL2/sdl2.h>
-#include "sdl2_surface_ex.h"
+#include "thirdparty/sdl2_surface_ex.h"
 #include "../gpe/gpe_cursor_base.h"
 #include "../gpe/gpe_error_logger.h"
 #include "../gpe/internal_libs/sff_ex.h"

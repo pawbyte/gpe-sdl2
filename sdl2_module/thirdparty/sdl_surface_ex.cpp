@@ -30,7 +30,7 @@ SOFTWARE.
 
 */
 
-#include "sdl2_surface_ex.h"
+#include "thirdparty/sdl2_surface_ex.h"
 #include <algorithm>
 #include <math.h>
 
